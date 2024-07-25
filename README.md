@@ -17,5 +17,5 @@
    
 **ADDITIONAL COMMENTS**
 - you will get a 'FutureWarning' when the program is running. This can be ignored-- allow the program to run until processed with exit code 0.
-- cleaned.xlsx should be created locally in the project directory of this program
+- cleaned.xlsx will be created locally in the project directory of this program automatically 
   
