@@ -1,10 +1,11 @@
 import pandas as pd
 
 
+# columns: rc_account_id, brand, mrr, churn_date, EntryCount, dates (incremented by month 8/2019- 6/2024)
+# rows: rc_account_id and their sales agreement dates
+
 def same_left_right_date(df):
-    """populate blank cells in between two cells that have the same sales agreement date
-    columns: rc_account_id, brand, mrr, churn_date, EntryCount, dates (incremented by month 8/2019- 6/2024)
-    rows: rc_account_id and their sales agreement dates"""
+    """populate blank cells in between two cells that have the same sales agreement date"""
     dates = df.columns[5:]  # date columns start at column F
     for index, row in df.iterrows():  # iterate through account ids
         for date in range(len(dates) - 1):  # iterate through sale agreements for current account id
@@ -15,8 +16,64 @@ def same_left_right_date(df):
                         if left_date == row[dates[right_date]]:  # check if left and right dates are the same
                             # for the current row, populate cells between left and right date
                             for cell in range(date + 1, right_date):  # traverse through dates in between
-                                data.iloc[index, data.columns.get_loc(dates[cell])] = left_date
+                                df.iloc[index, data.columns.get_loc(dates[cell])] = left_date
                         break  # stop traversing once we have filled blank cells between two none blank cells
+    return df
+
+
+def propagate_right(df):
+    """populate blank cells to the right:
+    1. look for the cell in the row that has been last populated
+    2. populate cells to the right with that agreement date until the
+    column date surpasses it"""
+    dates = df.columns[5:]  # date columns start at column F
+    for index, row in df.iterrows():  # iterate through account ids
+        last_populated_cell = None
+        for date in range(len(dates) - 1, -1, -1):  # iterate through sale agreements from right to left
+            if pd.notna(row[dates[date]]):  # if current sales agreement is not blank
+                last_populated_cell = date  # last populated cell index
+                break
+
+        if last_populated_cell is not None:  # if there is a sales agreement present
+            last_date = pd.to_datetime(row[dates[last_populated_cell]], errors='coerce')
+            for date in range(last_populated_cell + 1,
+                              len(dates)):  # iterate through dates to the right of last populated cell
+                current_date = pd.to_datetime(dates[date], errors='coerce')  # column date
+                if current_date <= last_date:  # populate if current column date is less than or equal to last
+                    # agreement date
+                    df.iloc[index, df.columns.get_loc(dates[date])] = last_date
+                else:
+                    break  # stop if the column date surpasses the agreement date
+    return df
+
+
+def mark_done(df):
+    """flag row as done if cells are populated properly:
+    1. find the first cell populated in the row.
+    2. find the last cell populated in the row.
+    3. check for any blank cells between the first and last cells populated.
+    4. if no blanks are found, mark it as done"""
+    dates = df.columns[5:]  # date columns start at column F
+    for index, row in df.iterrows():  # iterate through account ids
+        first_populated_cell = None
+        last_populated_cell = None
+
+        # Find the first populated cell
+        for date in range(len(dates)):
+            if pd.notna(row[dates[date]]):
+                first_populated_cell = date
+                break
+
+        # Find the last populated cell
+        for date in range(len(dates) - 1, -1, -1):
+            if pd.notna(row[dates[date]]):
+                last_populated_cell = date
+                break
+
+        # Check for blank cells between the first and last populated cells
+        if first_populated_cell is not None and last_populated_cell is not None:
+            if all(pd.notna(row[dates[first_populated_cell:last_populated_cell + 1]])):
+                df.at[index, 'Status'] = 'Done'
     return df
 
 
@@ -35,8 +92,10 @@ def fix_date_format(df):
 file_input = ''  # define excel export
 data = pd.read_excel(file_input)  # open and read excel
 
-data = same_left_right_date(data)  # calling clean up
-data = fix_date_format(data)  # format dates
+# data = same_left_right_date(data)  # calling clean up
+# data = propagate_right(data)  # propagate dates to the right
+# data = fix_date_format(data)  # format dates
+data = mark_done(data)
 
 output_file = 'cleaned.xlsx'  # write to this output file
 data.to_excel(output_file, index=False)  # writing updated data frame to output file
