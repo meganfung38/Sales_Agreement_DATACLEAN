@@ -20,10 +20,14 @@ def same_left_right_date(df):
     return df
 
 
-def fix_date_format(df, date_columns):
-    """changes cell dates from datetime objs to formatted dates"""
-    for col in date_columns:  # iterate through date columns
+def fix_date_format(df):
+    """changes cell dates and column names from datetime objs to formatted dates"""
+    date_columns = data.columns[5:]  # define columns that represent dates
+    for col in date_columns:  # iterate through date column cells
         df[col] = pd.to_datetime(df[col], errors='coerce').dt.strftime('%m/%d/%Y')
+    # change column names to formatted dates
+    formatted_date_columns = pd.to_datetime(date_columns, errors='coerce').strftime('%m/%d/%Y')
+    df.rename(columns=dict(zip(date_columns, formatted_date_columns)), inplace=True)
     return df
 
 
@@ -32,8 +36,7 @@ file_input = ''  # define excel export
 data = pd.read_excel(file_input)  # open and read excel
 
 data = same_left_right_date(data)  # calling clean up
-date_columns = data.columns[5:]  # define columns that represent dates
-data = fix_date_format(data, date_columns)  # format dates
+data = fix_date_format(data)  # format dates
 
 output_file = 'cleaned.xlsx'  # write to this output file
 data.to_excel(output_file, index=False)  # writing updated data frame to output file
