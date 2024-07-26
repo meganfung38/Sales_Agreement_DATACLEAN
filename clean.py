@@ -57,24 +57,24 @@ def choose_date(df):
     5. otherwise populate the cell with the agreement date in the right cell"""
     dates = df.columns[5:]  # date columns start at column F
     for index, row in df.iterrows():  # iterate through account ids
-        for date in range(len(dates) - 1):  # iterate through sale agreements for current account id
-            if pd.isna(row[dates[date]]):  # current cell is blank
-                if pd.notna(row[dates[date - 1]]):  # one cell to left is not blank
-                    left_date = pd.to_datetime(row[dates[date - 1]], errors='coerce')  # left cell should be populated
+        for date in range(1, len(dates) - 1):  # iterate through sale agreements for current account id
+            left_date = None
+            for left in range(date - 1, -1, -1):  # traverse cell to the left
+                if pd.notna(row[dates[left]]):  # left cell is not blank
+                    left_date = pd.to_datetime(row[dates[left]], errors='coerce')  # assign date in this cell
+                    break
+            right_date = None
+            for right in range(date + 1, len(dates)):  # traverse cells to the right
+                if pd.notna(row[dates[right]]):  # right cell is not blank
+                    right_date = pd.to_datetime(row[dates[right]], errors='coerce')  # assign date in this cell
+                    break
+            current_column_date = pd.to_datetime(dates[date], errors='coerce')  # blank cell's column date
+            if left_date is not None and right_date is not None:  # in between two cells that are populated
+                # see if column date is prior to left agreement date
+                if (current_column_date.month < left_date.month) and (current_column_date.year <= left_date.year):
+                    df.iloc[index, df.columns.get_loc(dates[date])] = left_date  # take left date
                 else:
-                    left_date = None
-                right_date = None
-                for right in range(date + 1, len(dates)):  # traverse cells to the right
-                    if pd.notna(row[dates[right]]):  # right cell is not blank
-                        right_date = pd.to_datetime(row[dates[right]], errors='coerce')  # assign date in this cell
-                        break
-                current_column_date = pd.to_datetime(dates[date], errors='coerce')  # blank cell's column date
-                if left_date is not None and right_date is not None:  # in between two cells that are populated
-                    # see if column date is prior to left agreement date
-                    if (current_column_date.month < left_date.month) and (current_column_date.year <= left_date.year):
-                        df.iloc[index, df.columns.get_loc(dates[date])] = left_date  # take left date
-                    else:
-                        df.iloc[index, df.columns.get_loc(dates[date])] = right_date  # take right date
+                    df.iloc[index, df.columns.get_loc(dates[date])] = right_date  # take right date
     return df
 
 
@@ -125,9 +125,9 @@ data = pd.read_excel(file_input)  # open and read excel
 
 # data = same_left_right_date(data)  # calling clean up
 # data = propagate_right(data)  # propagate dates to the right
-data = choose_date(data)  # populate blank cells in between different agreement dates
-data = fix_date_format(data)  # format dates
-data = mark_done(data)
+# data = choose_date(data)  # populate blank cells in between different agreement dates
+# data = fix_date_format(data)  # format dates
+# data = mark_done(data)
 
 output_file = 'cleaned.xlsx'  # write to this output file
 data.to_excel(output_file, index=False)  # writing updated data frame to output file
