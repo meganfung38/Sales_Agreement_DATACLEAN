@@ -72,9 +72,9 @@ def choose_date(df):
                 current_column_date = pd.to_datetime(dates[date], errors='coerce')  # blank cell's column date
                 if left_date is not None and right_date is not None:  # in between two cells that are populated
                     # see if column date is prior to left agreement date
-                    if current_column_date.year < left_date.year:   
+                    if current_column_date.year < left_date.year:
                         df.iloc[index, df.columns.get_loc(dates[date])] = left_date  # take left date
-                    elif (current_column_date.year == left_date.year) and (current_column_date < left_date.month):
+                    elif (current_column_date.year == left_date.year) and (current_column_date.month < left_date.month):
                         df.iloc[index, df.columns.get_loc(dates[date])] = left_date  # take left date
                     else:
                         df.iloc[index, df.columns.get_loc(dates[date])] = right_date  # take right date
@@ -123,7 +123,7 @@ def fix_date_format(df):
 
 
 # calling functions for data clean up
-file_input = ''  # define excel export
+file_input = 'Using Choose Date Function.xlsx'  # define excel export
 data = pd.read_excel(file_input)  # open and read excel
 
 # data = same_left_right_date(data)  # calling clean up
