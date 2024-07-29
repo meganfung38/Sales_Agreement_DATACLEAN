@@ -8,7 +8,10 @@
    - populates blank cells at the end of a row. Identifies the rightmost cell populated and fills in blank cells to the right whose column date is prior to the agreement date identified
 
 - choose_date(df)
-  - populates blank cells in between cells that have different agreement dates and makes a decision between which date to choose (agreement date in left or right cell) 
+  - populates blank cells in between cells that have different agreement dates and makes a decision between which date to choose (agreement date in left or right cell)
+
+- needs_revisiion(df)
+  - flags rows with a question mark and highlights the cells in them that needs revision
      
  - mark_done(df) **mainly for my own usage
    - marks rows as 'done' if there are no blank cells between the first populated cell and last populated cell
