@@ -1,4 +1,6 @@
 import pandas as pd
+import openpyxl
+from openpyxl.styles import PatternFill
 
 
 # columns: rc_account_id, brand, mrr, churn_date, EntryCount, dates (incremented by month 8/2019- 6/2024)
@@ -81,6 +83,37 @@ def choose_date(df):
     return df
 
 
+def needs_revision(df):
+    """Identifies cells that need to be flagged for revision:
+    1. sales agreement date only spans for one - four months."""
+    dates = df.columns[5:]  # date columns start at column F
+    to_highlight = []
+
+    for index, row in df.iterrows():  # iterate through account ids
+        for date in range(len(dates)):  # iterate through sale agreements for current account id
+            current_date = row[dates[date]]  # current sales agreement being iterated
+            if pd.notna(current_date):  # check that cell is not blank
+                count = 1  # keep track of occurrences of current agreement date
+                highlight_cells = [date]
+                for right in range(date + 1, len(dates)):  # count right
+                    if row[dates[right]] == current_date:  # same date
+                        count += 1
+                        highlight_cells.append(right)
+                    else:  # stop counting
+                        break
+                for left in range(date - 1, -1, -1):  # count left
+                    if row[dates[left]] == current_date:  # same date
+                        count += 1
+                        highlight_cells.insert(0, left)
+                    else:  # stop counting
+                        break
+                if 1 <= count <= 4:  # sales agreement date only spans for 1-4 months
+                    df.at[index, 'Status'] = '?'  # flag row
+                    for cell in highlight_cells:
+                        to_highlight.append((index + 2, df.columns.get_loc(dates[cell]) + 1))
+    return df, to_highlight
+
+
 def mark_done(df):
     """flag row as done if cells are populated properly:
     1. find the first cell populated in the row.
@@ -115,25 +148,38 @@ def fix_date_format(df):
     """changes cell dates and column names from datetime objs to formatted dates"""
     date_columns = data.columns[5:]  # define columns that represent dates
     for col in date_columns:  # iterate through date column cells
-        df[col] = pd.to_datetime(df[col], errors='coerce').dt.strftime('%m/%d/%Y')
+        df[col] = pd.to_datetime(df[col], errors='coerce').dt.strftime('%-m/%-d/%Y')
     # change column names to formatted dates
-    formatted_date_columns = pd.to_datetime(date_columns, errors='coerce').strftime('%m/%d/%Y')
+    formatted_date_columns = pd.to_datetime(date_columns, errors='coerce').strftime('%-m/%-d/%Y')
     df.rename(columns=dict(zip(date_columns, formatted_date_columns)), inplace=True)
     return df
 
 
 # calling functions for data clean up
-file_input = 'Using Choose Date Function.xlsx'  # define excel export
+file_input = 'Megan_ Rows 1706-3599.xlsx'  # define excel export
 data = pd.read_excel(file_input)  # open and read excel
 
 # data = same_left_right_date(data)  # calling clean up
 # data = propagate_right(data)  # propagate dates to the right
-data = choose_date(data)  # populate blank cells in between different agreement dates
-data = fix_date_format(data)  # format dates
+# data = choose_date(data)  # populate blank cells in between different agreement dates
 # data = mark_done(data)
+data = fix_date_format(data)  # fix formatting
+data, cells_to_highlight = needs_revision(data)  # clean data and add flags
 
 output_file = 'cleaned.xlsx'  # write to this output file
 data.to_excel(output_file, index=False)  # writing updated data frame to output file
+
+# Apply conditional formatting to highlight cells that need revision
+wb = openpyxl.load_workbook(output_file)
+ws = wb.active
+yellow_fill = PatternFill(start_color='FFFF00', end_color='FFFF00', fill_type='solid')
+
+# Iterate through the list of cells to apply formatting
+for (r, c) in cells_to_highlight:
+    ws.cell(row=r, column=c).fill = yellow_fill
+
+# Save the workbook
+wb.save(output_file)
 
 print("finished clean up")
 
