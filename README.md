@@ -1,6 +1,9 @@
 # Sales_Agreement_DATACLEAN
 
 **USAGE**
+- add_new_month(df)
+   - adds a new column representing the next month and propagates sales agreement dates as needed
+     
 - same_left_right_date(df)
    - populates blank cells in between two cells that have the same sales agreement date
      
