@@ -1,10 +1,24 @@
 import pandas as pd
-import openpyxl
-from openpyxl.styles import PatternFill
-
+# import openpyxl
+# from openpyxl.styles import PatternFill
 
 # columns: rc_account_id, brand, mrr, churn_date, EntryCount, dates (incremented by month 8/2019- 6/2024)
 # rows: rc_account_id and their sales agreement dates
+
+
+def add_new_month(df):
+    """adds a new column for the next month and propagates dates to the right (if applicable) """
+    dates = df.columns[5:]  # date columns start at column F
+    last_date_col = dates[-1]  # rightmost column (latest date in excel)
+    last_date = pd.to_datetime(last_date_col, errors='coerce')   # get datetime obj
+    new_month = (last_date + pd.DateOffset(months=1)).replace(day=1)  # add one month
+    new_month_label = new_month.strftime('%Y-%m-%d')  # format new column for next month label
+    df[new_month_label] = pd.NA  # add new column
+
+    df = propagate_right(df)  # propagate dates to right
+
+    return df
+
 
 def same_left_right_date(df):
     """populate blank cells in between two cells that have the same sales agreement date"""
@@ -156,30 +170,30 @@ def fix_date_format(df):
 
 
 # calling functions for data clean up
-file_input = 'Megan_ Rows 1706-3599.xlsx'  # define excel export
+file_input = 'UpmarketSAE.xlsx'  # define excel export
 data = pd.read_excel(file_input)  # open and read excel
 
+data = add_new_month(data)  # add new month column and propagate right accordingly
 # data = same_left_right_date(data)  # calling clean up
 # data = propagate_right(data)  # propagate dates to the right
 # data = choose_date(data)  # populate blank cells in between different agreement dates
 # data = mark_done(data)
 data = fix_date_format(data)  # fix formatting
-data, cells_to_highlight = needs_revision(data)  # clean data and add flags
+# data, cells_to_highlight = needs_revision(data)  # clean data and add flags
 
 output_file = 'cleaned.xlsx'  # write to this output file
 data.to_excel(output_file, index=False)  # writing updated data frame to output file
 
-# Apply conditional formatting to highlight cells that need revision
-wb = openpyxl.load_workbook(output_file)
-ws = wb.active
-yellow_fill = PatternFill(start_color='FFFF00', end_color='FFFF00', fill_type='solid')
-
-# Iterate through the list of cells to apply formatting
-for (r, c) in cells_to_highlight:
-    ws.cell(row=r, column=c).fill = yellow_fill
-
-# Save the workbook
-wb.save(output_file)
+# # Apply conditional formatting to highlight cells that need revision
+# wb = openpyxl.load_workbook(output_file)
+# ws = wb.active
+# yellow_fill = PatternFill(start_color='FFFF00', end_color='FFFF00', fill_type='solid')
+#
+# # Iterate through the list of cells to apply formatting
+# for (r, c) in cells_to_highlight:
+#     ws.cell(row=r, column=c).fill = yellow_fill
+#
+# # Save the workbook
+# wb.save(output_file)
 
 print("finished clean up")
-
